@@ -1,0 +1,66 @@
+ONE PACKAGE AT EACH LOCATION AND NOT ENOUGH BATTERY NEITHER TIME
+
+
+ff: parsing domain file
+domain 'WAREHOUSE' defined
+ ... done.
+ff: parsing problem file
+problem 'P5-WAREHOUSE' defined
+ ... done.
+
+
+metric established (normalized to minimize): ((1.00*[RF5](TIME)) - () + 0.00)
+
+checking for cyclic := effects --- OK.
+
+Evaluation function 1.000000*g(s) + 3.000000*h(s) where
+ metric is((1.00*[RF5](TIME)) - () + 0.00)
+
+advancing to distance:   13
+                         12
+                         10
+                          9
+                          8
+                          7
+                          6
+                          5
+                          4
+                          3
+
+ff: found legal plan as follows
+
+step    0: (ROBOT_WAIT_AT_BASE_CHARGING)
+        1: (ROBOT_WAIT_AT_BASE_CHARGING)
+        2: (ROBOT_WAIT_AT_BASE_CHARGING)
+        3: (ROBOT_WAIT_AT_BASE_CHARGING)
+        4: (ROBOT_WAIT_AT_BASE_CHARGING)
+        5: (ROBOT_WAIT_AT_BASE_CHARGING)
+        6: (ROBOT_WAIT_AT_BASE_CHARGING)
+        7: (ROBOT_MOVE BASE W3)
+        8: (ROBOT_PICKUP P2 W3)
+        9: (ROBOT_MOVE W3 W1)
+       10: (ROBOT_RESCHEDULE_PROCESSING P0)
+       11: (ROBOT_PICKUP P0 W1)
+       12: (ROBOT_MOVE W1 W2)
+       13: (ROBOT_RESCHEDULE_PROCESSING P1)
+       14: (ROBOT_PICKUP P1 W2)
+       15: (ROBOT_MOVE W2 PROOM)
+       16: (PROCESS_PACKAGE P0)
+       17: (ROBOT_RESCHEDULE_PROCESSING P1)
+       18: (PROCESS_PACKAGE P1)
+       19: (ROBOT_RESCHEDULE_PROCESSING P2)
+       20: (ROBOT_RESCHEDULE_PROCESSING P2)
+       21: (PROCESS_PACKAGE P2)
+       22: (ROBOT_END_PROCESSING PROOM)
+       23: (END_SCHEDULE)
+
+
+time spent:    0.00 seconds instantiating 64 easy, 0 hard action templates
+               0.00 seconds reachability analysis, yielding 54 facts and 63 actions
+               0.00 seconds creating final representation with 54 relevant facts, 18 relevant fluents
+               0.00 seconds computing LNF
+               0.00 seconds building connectivity graph
+             137.65 seconds searching, evaluating 618545 states, to a max depth of 0
+             137.65 seconds total time
+
+total cost:  176.00

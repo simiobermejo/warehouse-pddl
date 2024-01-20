@@ -1,139 +1,141 @@
-(define (domain videocall)
-	(:requirements :strips :typing :fluents :equality :negative-preconditions)
+(define (domain warehouse)
+    (:requirements :strips :typing :fluents :equality :negative-preconditions)
 
-	(:types
-		base hall videoroom - location
-		location patient - object
-	)
+    (:types
+        base proom warehouse - location
+        location package - object
+    )
 
-	(:predicates
-		(robot_at ?l - location) ; posicion del robot
+    (:predicates
+        (finished) ;goal predicate
+        (end-delivery) ;robot is at base and all packages are delivered
+        (robot-at ?l - location) ;robot is at location l
+        (processed ?p - package) ;package p is processed
+        (processing ?p - package) ;package p is being processed
+        (package-at ?p - package ?l - location) ;package p is at location l
+    )
 
-		(attending ?p - patient) ; Paciente al que se está atendiendo
-		(patient_at ?p - patient ?h - location) ; Posibles posiciones de cada paciente
-		(alerted ?p - patient ?h - location) ; si para esa llamada ya se ha avisado al paciente
+    (:functions
+        (time) ;current time in minutes
+        (packages) ;number of packages being processed
+        (max-packages) ;maximum number of packages that can be processed at the same time
+        (battery-level) ;battery level in percentage
+        (processing-time ?p - package) ;processing time in minutes
+        (processing-energy ?p - package) ;energy consumption in percentage
+        (end-processing-time ?p - package) ;end time of processing in minutes
+        (distance ?l1 - location ?l2 - location) ;distance between two locations battery terms
+        (time-from ?l1 - location ?l2 - location) ;time to move between two locations in minutes
+    )
 
-		(detect_patient ?p - patient) ; Detecta el paciente al entrar a la sala de llamada;
-		(greeted_patient ?p - patient) ;Saluda al paciente al entrar a la sala
-		(call_done ?p - patient) ; hace la llamada para el paciente
-		(say_godbye ?p - patient) ; Despedirse del paciente
+    (:action robot_move
+        :parameters (?l1 ?l2 - location)
+        :precondition (and
+            (robot-at ?l1) ;robot is at location l1
+            (not (= ?l1 ?l2)) ;robot is not at location l2
+            (>= (battery-level) (distance ?l1 ?l2))) ;battery level is enough to move to l2
+        :effect (and
+            (robot-at ?l2) ;robot is at location l2
+            (not (robot-at ?l1)) ;robot is not at location l1
+            (increase (time) (time-from ?l1 ?l2)) ;time is increased by the time to move from l1 to l2
+            (decrease (battery-level) (distance ?l1 ?l2))) ;battery level is decreased by the distance between l1 and l2
+    )
 
-		(cancel_call ?p - patient) ; En el caso de cancelarse la llamada
+    (:action robot_wait_at_base_charging
+        :parameters ()
+        :precondition (and
+            (robot-at base) ;robot is at base
+            (= (packages) 0) ;robot is not processing any package
+            (< (battery-level) 100)) ;battery level is less than 100
+        :effect (and
+            (increase (time) 5) ;time is increased by 5 minutes
+            (increase (battery-level) 10)) ;battery level is increased by 10%
+    )
 
-		(cancel ?p1 - patient) ; Cancelar la llamada de un paciente
-		(on_session) ; Está atendiendo a alguien
-		(end_session)
-	) ; Termina la ronda de llamadas
+    (:action robot_wait_at_base
+        :parameters ()
+        :precondition (and
+            (robot-at base) ;robot is at base
+            (= (packages) 0)) ;robot is not processing any package
+        :effect (and
+            (increase (time) 5)) ;time is increased by 5 minutes
+    )
 
-	(:functions
-		(current_time) ; Hora actual
-		(cancel ?p - patient) ; Hora de cancelación llamada
-		(programmed_call ?p - patient)
-	) ; Hora de las llamadas
+    (:action robot_pickup
+        :parameters (?p - package ?l - location)
+        :precondition (and
+            (robot-at ?l) ;robot is at location l
+            (package-at ?p ?l) ;package p is at location l
+            (not (processing ?p)) ;package p is not being processed
+            (< (time) (end-processing-time ?p))
+            (> (max-packages) (packages))) ;maximum number of packages being processed is less than the maximum number of packages that can be processed at the same time
+        :effect (and
+            (processing ?p) ;package p is being processed
+            (increase (time) 5) ;time is increased by 5 minutes
+            (increase (packages) 1) ;number of packages being processed is increased by 1
+            (not (package-at ?p ?l)) ;package p is not at location l
+            (decrease (battery-level) 3)) ;battery level is decreased by 3%
+    )
 
-	(:action NAO_move_to_base
-		:parameters (?l - location)
-		:precondition (and (forall
-				(?p - patient) ; Para cada uno de los pacientes
-				(or (say_godbye ?p) (>= (- (programmed_call ?p) (current_time)) 15))) ; Si no se le ha atendido o quedan más de 15 mins
-			(robot_at ?l) ; Robot en posicion
-			(not (robot_at base)) ; Que no es la base
-			(not (on_session))) ; No está en medio de una sesion
-		:effect (and (robot_at base) ; Se mueve el robot a la base de carga
-			(not (robot_at ?l)))
-	)
+    (:action process_package
+        :parameters (?p - package)
+        :precondition (and
+            (processing ?p) ;package p is being processed
+            (robot-at proom) ;robot must be at processing room
+            (> (battery-level) (processing-energy ?p)) ;enough battery for processing package
+            (> (- (end-processing-time ?p) (time)) (processing-time ?p))) ;enough time for processing package
+        :effect (and
+            (processed ?p) ;package p is processed
+            (not (processing ?p)) ;package p is not being processed
+            (decrease (packages) 1) ;number of packages being processed is decreased by 1
+            (increase (time) (processing-time ?p)) ;time is increased by the processing time of package p
+            (decrease (battery-level) (processing-energy ?p))) ;battery level is decreased by the energy consumption of package p
+    )
 
-	(:action NAO_wait_at_base
-		:precondition (and (forall
-				(?p - patient) ; para cada paciente
-				(or (say_godbye ?p) (>= (- (programmed_call ?p) (current_time)) 15))) ; si quedan más de 15 minutos
-			(robot_at base) ; y el robot está en la base
-			(not (on_session))) ; sin estar en seśión
-		:effect (and (increase (current_time) 5))
-	) ; se incrementa en 5 minutos el tiempo
+    (:action robot_end_processing
+        :parameters (?l1 - location)
+        :precondition (and
+            (not (robot-at base)) ;robot is not at base
+            (forall
+                (?p - package)
+                (processed ?p)) ;all packages are processed
+            (robot-at ?l1) ;robot at location 
+            (>= (battery-level) (distance ?l1 base))); enough battery to move to base
+        :effect (and
+            (robot-at base) ;robot to base
+            (end-delivery) ;end delivery
+            (not (robot-at ?l1)) ;robot is not at location l1
+            (increase (time) (time-from ?l1 base)) ;time is increased by the time to move from l1 to base
+            (decrease (battery-level) (distance ?l1 base))) ;battery level is decreased by the distance between l1 and base
+    )
 
-	(:action NAO_received_cancelled
-		:parameters (?p - patient)
-		:precondition (and (>= (- (cancel ?p) (current_time)) 15)) ; si se cancela 15 minutos antes de la llamada
-		:effect (and (decrease (programmed_call ?p) 10000000))
-	) ; se marca la llamada como cancelada
+    (:action end_schedule
+        :parameters ()
+        :precondition (and
+            (end-delivery)) ; if delivery has ended
+        :effect (and 
+            (finished)) ;finish the program (action only for beautyful printing) 
+    )
+    
+    (:action robot_reschedule_processing
+        :parameters (?p - package)
+        :precondition (and
+            (not (processed ?p))
+            (< (- (end-processing-time ?p) (time)) (processing-time ?p))) ;time left to finish processing package p is less than 15 minutes
+        :effect (and
+            (increase (time) 10) ;loose 10 minutes in perform rescheduling to avoid this action
+            (increase (end-processing-time ?p) 60)) ;end time of processing package p is increased by 60 minutes
+    )
 
-	(:action NAO_starts_session
-		:parameters (?p - patient)
-		:precondition (and (<= (- (programmed_call ?p) (current_time)) 10) ; si quedan menos de 10 minutos
-			(>= (- (programmed_call ?p) (current_time)) 0)
-			(not (say_godbye ?p)) ; si no se ha
-			(not (on_session)))
-		:effect (and (attending ?p)
-			(on_session))
-	)
-
-	(:action NAO_move
-		:parameters (?p - patient ?l1 ?l2 - location)
-		:precondition (and (robot_at ?l1)
-			(attending ?p))
-		:effect (and (not (robot_at ?l1))
-			(robot_at ?l2))
-	)
-
-	(:action NAO_anounces_call
-		:parameters (?p - patient ?l - location)
-		:precondition (and (attending ?p) (robot_at ?l) (not (alerted ?p ?l)))
-		:effect (and (alerted ?p ?l))
-	)
-
-	(:action NAO_detect_patient
-		:parameters (?p - patient)
-		:precondition (and (robot_at videoroom)
-			(attending ?p)
-			(forall
-				(?lo - location)
-				(imply
-					(patient_at ?p ?lo)
-					(alerted ?p ?lo)))
-			(not (detect_patient ?p)))
-		:effect (and (detect_patient ?p))
-	)
-
-	(:action NAO_greet_patient
-		:parameters (?p - patient)
-		:precondition (and (robot_at videoroom)
-			(attending ?p)
-			(detect_patient ?p)
-			(not (greeted_patient ?p)))
-		:effect (and (greeted_patient ?p))
-	)
-
-	(:action NAO_make_call
-		:parameters (?p - patient)
-		:precondition (and (robot_at videoroom)
-			(attending ?p)
-			(detect_patient ?p)
-			(greeted_patient ?p)
-			(not (call_done ?p)))
-		:effect (and (call_done ?p)
-			(increase (current_time) 30))
-	)
-
-	(:action NAO_say_goodbye_to_patient
-		:parameters (?p - patient)
-		:precondition (and (robot_at videoroom)
-			(attending ?p)
-			(call_done ?p))
-		:effect (and (say_godbye ?p)
-			(not (call_done ?p))
-			(not (on_session))
-			(not (attending ?p))
-			(decrease (programmed_call ?p) 10000000))
-	)
-
-	(:action NAO_to_base_end
-		:parameters (?l - location)
-		:precondition (and (forall
-				(?p - patient)
-				(< (programmed_call ?p) 0))
-			(not (on_session))
-			(not (robot_at base)))
-		:effect (and (robot_at base) (not (robot_at ?l)) (end_session))
-	)
+    (:action robot_drop_off
+        :parameters (?p - package ?l - location)
+        :precondition (and
+            (robot-at ?l) ;robot is at location l
+            (processing ?p) ;package p is processed
+            (not (package-at ?p ?l))) ;package p is not at location l
+        :effect (and
+            (package-at ?p ?l) ;package p is at location l
+            (increase (time) 5) ;time is increased by 5 minutes
+            (not (processing ?p)) ;package p is not processed
+            (decrease (battery-level) 3)) ;battery level is increased by 3%
+    )
 )

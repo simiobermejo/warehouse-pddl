@@ -1,0 +1,41 @@
+COSTLY PATH FROM BASE TO W1 WAREHOUSE
+
+
+ff: parsing domain file
+domain 'WAREHOUSE' defined
+ ... done.
+ff: parsing problem file
+problem 'P7-WAREHOUSE' defined
+ ... done.
+
+
+metric established (normalized to minimize): ((1.00*[RF3](TIME)) - () + 0.00)
+
+checking for cyclic := effects --- OK.
+
+Evaluation function 1.000000*g(s) + 3.000000*h(s) where
+ metric is((1.00*[RF3](TIME)) - () + 0.00)
+
+advancing to distance:    6
+                          5
+
+ff: found legal plan as follows
+
+step    0: (ROBOT_MOVE BASE PROOM)
+        1: (ROBOT_MOVE PROOM W1)
+        2: (ROBOT_PICKUP P0 W1)
+        3: (ROBOT_MOVE W1 PROOM)
+        4: (PROCESS_PACKAGE P0)
+        5: (ROBOT_END_PROCESSING PROOM)
+        6: (END_SCHEDULE)
+
+
+time spent:    0.16 seconds instantiating 40 easy, 0 hard action templates
+               0.00 seconds reachability analysis, yielding 26 facts and 39 actions
+               0.00 seconds creating final representation with 26 relevant facts, 10 relevant fluents
+               0.00 seconds computing LNF
+               0.00 seconds building connectivity graph
+               0.00 seconds searching, evaluating 17 states, to a max depth of 0
+               0.16 seconds total time
+
+total cost:   52.00

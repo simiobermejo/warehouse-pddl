@@ -1,0 +1,19 @@
+UNREACHABLE WAREHOUSES DUE TO CONSTLY PATHES
+
+
+ff: parsing domain file
+domain 'WAREHOUSE' defined
+ ... done.
+ff: parsing problem file
+problem 'P3-WAREHOUSE' defined
+ ... done.
+
+
+metric established (normalized to minimize): ((1.00*[RF5](TIME)) - () + 0.00)
+
+checking for cyclic := effects --- OK.
+
+Evaluation function 1.000000*g(s) + 3.000000*h(s) where
+ metric is((1.00*[RF5](TIME)) - () + 0.00)
+
+search space empty!
